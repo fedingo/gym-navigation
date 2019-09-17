@@ -5,10 +5,9 @@ import time
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
-from gym_maze.envs.maze_view_2d import MazeView2D
 
 
-class Nav_Env(gym.Env):
+class Nav_Env(gym.GoalEnv):
 
     SHIFT = {0 : [1,0],
              1 : [-1,0],
@@ -39,15 +38,22 @@ class Nav_Env(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+    def __matrixify(self, position):
+        matrix = np.zeros([self.size] * 2)
+        matrix[tuple(position)] = 1
+        return matrix
+
     def _get_state(self):
 
-        player_pos = np.zeros([self.size] * 2)
-        goal_pos = np.zeros([self.size] * 2)
+        player_pos = self.__matrixify(self.player_position)
+        obs = np.array([self.matrix, player_pos])
 
-        player_pos[tuple(self.player_position)] = 1
-        goal_pos[tuple(self.goal_position)] = 1
+        desired_goal = self.__matrixify(self.goal_position)
+        achieved_goal = self.__matrixify(self.player_position)
 
-        state = np.array([self.matrix, player_pos, goal_pos])
+        state = {'observation': obs,
+                 'achieved_goal': achieved_goal,
+                 'desired_goal': desired_goal}
 
         return state
 
@@ -64,14 +70,23 @@ class Nav_Env(gym.Env):
             self.goal_position = np.random.randint(self.size, size=2)
 
         self.obs_shape = [3, self.size, self.size]
-        self.action_space = spaces.MultiDiscrete(len(self.actions))
+        self.action_space = spaces.Discrete(len(self.actions))
 
-        # The observation space is actually composed of a vector of twice the length of the guesses
-        # The first half contains the guess that we have just made
-        # The second half is the result of the query (containing 2,1,0) that indicates how many are correct
-        self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.int)
+        #self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.int)
+        self.observation_space = gym.spaces.Dict({'observation':   spaces.Box(low=0, high=1, shape=(2, self.size, self.size), dtype=np.int),
+                                                  'achieved_goal': spaces.Box(low=0, high=1, shape=(1, self.size, self.size), dtype=np.int),
+                                                  'desired_goal':  spaces.Box(low=0, high=1, shape=(1, self.size, self.size), dtype=np.int)})
 
         return self._get_state()
+
+    def compute_reward(self, achieved_goal, desired_goal, info):
+
+        if (achieved_goal == desired_goal).all():
+            reward = +1
+        else:
+            reward = -0.05
+
+        return reward
 
     def step(self, action):
         assert self.action_space.contains(action)
@@ -82,7 +97,10 @@ class Nav_Env(gym.Env):
             self.player_position = new_player_position
 
         done = (self.goal_position == self.player_position).all()
-        reward = 1 if done else -0.05
+
+        desired_goal = self.__matrixify(self.goal_position)
+        achieved_goal = self.__matrixify(self.player_position)
+        reward = self.compute_reward(achieved_goal, desired_goal, None)
 
         if self.step_count > self.MAX_STEPS:
             done = True
@@ -90,17 +108,6 @@ class Nav_Env(gym.Env):
         self.step_count += 1
 
         return self._get_state(), reward, done, None
-
-    # Uses loss of life as terminal signal
-    def train(self):
-        self.training = True
-
-    # Uses standard terminal signal
-    def eval(self):
-        self.training = False
-
-    def action_space(self):
-        return len(self.actions)
 
     def render(self, mode='human', close=False):
         view = np.copy(self.matrix).astype(np.str)

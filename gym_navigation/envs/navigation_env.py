@@ -51,9 +51,9 @@ class Nav_Env(gym.GoalEnv):
         desired_goal = self.__matrixify(self.goal_position)
         achieved_goal = self.__matrixify(self.player_position)
 
-        state = {'observation': obs,
-                 'achieved_goal': achieved_goal,
-                 'desired_goal': desired_goal}
+        state = {'observation': obs.flatten(),
+                 'achieved_goal': achieved_goal.flatten(),
+                 'desired_goal': desired_goal.flatten()}
 
         return state
 
@@ -73,9 +73,13 @@ class Nav_Env(gym.GoalEnv):
         self.action_space = spaces.Discrete(len(self.actions))
 
         #self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.int)
-        self.observation_space = gym.spaces.Dict({'observation':   spaces.Box(low=0, high=1, shape=(2, self.size, self.size), dtype=np.int),
-                                                  'achieved_goal': spaces.Box(low=0, high=1, shape=(1, self.size, self.size), dtype=np.int),
-                                                  'desired_goal':  spaces.Box(low=0, high=1, shape=(1, self.size, self.size), dtype=np.int)})
+        # self.observation_space = gym.spaces.Dict({'observation':   spaces.Box(low=0, high=1, shape=(2, self.size, self.size), dtype=np.int),
+        #                                           'achieved_goal': spaces.Box(low=0, high=1, shape=(1, self.size, self.size), dtype=np.int),
+        #                                           'desired_goal':  spaces.Box(low=0, high=1, shape=(1, self.size, self.size), dtype=np.int)})
+
+        self.observation_space = gym.spaces.Dict({'observation':   spaces.Box(low=0, high=1, shape=(2* self.size* self.size,), dtype=np.int),
+                                                  'achieved_goal': spaces.Box(low=0, high=1, shape=(1* self.size* self.size,), dtype=np.int),
+                                                  'desired_goal':  spaces.Box(low=0, high=1, shape=(1* self.size* self.size,), dtype=np.int)})
 
         return self._get_state()
 

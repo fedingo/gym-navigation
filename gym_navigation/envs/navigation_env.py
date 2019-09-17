@@ -111,7 +111,7 @@ class Nav_Env(gym.GoalEnv):
 
         self.step_count += 1
 
-        return self._get_state(), reward, done, None
+        return self._get_state(), reward, done, {}
 
     def render(self, mode='human', close=False):
         view = np.copy(self.matrix).astype(np.str)

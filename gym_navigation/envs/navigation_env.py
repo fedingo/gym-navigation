@@ -15,7 +15,7 @@ class Nav_Env(gym.GoalEnv):
              3 : [0,-1]}
 
     def __init__(self, env_size = 10, obstacles = 0):
-        self.MAX_STEPS = 20
+        self.MAX_STEPS = 50
 
         self.size = env_size
         self.obstacles = obstacles
@@ -88,7 +88,7 @@ class Nav_Env(gym.GoalEnv):
         if (achieved_goal == desired_goal).all():
             reward = +1
         else:
-            reward = -0.05
+            reward = -0.02
 
         return reward
 
